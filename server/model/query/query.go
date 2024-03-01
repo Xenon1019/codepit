@@ -43,7 +43,7 @@ func GetProblems(db *mongo.Database) ([]model.ProblemHeader, error) {
 	collection := db.Collection("Problems")
 	opts := options.Find().SetSort(bson.D{{Key: "number", Value: 1}}).SetProjection(bson.D{
 		{Key: "number", Value: 1},
-		{Key: "name", Value: 1},
+		{Key: "title", Value: 1},
 		{Key: "difficulty", Value: 1}},
 	)
 	cursor, err := collection.Find(ctx, bson.D{{}}, opts)
@@ -82,6 +82,7 @@ func ValidateUser(db *mongo.Database, username, password string) (*model.PublicU
 	if result == nil {
 		var publicUser model.PublicUser
 		opts = options.FindOne().SetProjection(bson.M{
+			"name":            1,
 			"username":        1,
 			"email":           1,
 			"is_admin":        1,
@@ -184,7 +185,7 @@ func GetUserProblems(db *mongo.Database, userHeader *model.UserHeader) (*model.P
 		return nil, err
 	}
 	return &model.PublicUser{
-		UserHeader: *userHeader,
+		UserHeader:     *userHeader,
 		SolvedProblems: user.SolvedProblems,
 	}, nil
 }

@@ -44,11 +44,15 @@ func GetProblem(c *gin.Context) {
 		c.String(http.StatusNotFound, "error: requested resource not found")
 		return
 	}
-	c.JSON(http.StatusFound, problem)
+	c.JSON(http.StatusOK, problem)
 }
 
 func AddProblem(c *gin.Context) {
-	jwt := getAuthorizaion(c.GetHeader("Authorization"))
+	jwt, err := c.Cookie("auth")
+	if len(jwt) == 0 || err == http.ErrNoCookie {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 	user, err := utils.ValidateToken(jwt)
 	if err != nil {
 		c.String(http.StatusUnauthorized, "error: invalid auth token")

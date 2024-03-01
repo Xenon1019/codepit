@@ -1,19 +1,32 @@
 import { Dispatch } from "react";
 
+
+
 interface AppState {
     status: FlowState;
-    [prop: string]: any;
-}
-
-interface FlowAction {
-    type: "login" | "logout" | "viewProblem" | "viewUser";
-    problemNumber?: number;
-    user?: string;
+    user: User | null;
+    problemList: ProblemHeader[] | null
+    problemView: number | null
+    userView?: string
 }
 
 type FlowState = "landed" | "loggedIn" | "problemView" | "userView";
 
-type Problem = null | {
+interface FlowAction {
+    type: "login" | "logout" | "viewProblem" | "viewUser" | "gotProblems";
+    problemNumber?: number;
+    user?: User;
+    userView?: string
+    problemList?: ProblemHeader[]
+}
+
+type ProblemHeader = {
+    number: number;
+    title: string;
+    difficulty: number;
+}
+
+type Problem = {
     number: number;
     title: string;
     solved: boolean;
@@ -32,6 +45,7 @@ type Problem = null | {
 };
 
 type User = null | {
+    name: string;
     username: string;
     email: string;
     problemSolvedCount: number;
@@ -40,7 +54,7 @@ type User = null | {
 };
 
 interface Context {
-    dispatch?: Dispatch<FlowAction>;
+    dispatch: Dispatch<FlowAction>;
     flowStateStatus: FlowState;
     apiAddress: string;
 }
@@ -51,6 +65,7 @@ export {
     Problem,
     FlowState,
     FlowAction,
+    ProblemHeader,
     AppState
 }
 

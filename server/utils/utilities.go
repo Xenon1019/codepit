@@ -34,6 +34,7 @@ type UserClaims struct {
 	jwt.RegisteredClaims
 	Email    string `json:"email"`
 	Username string `json:"username"`
+	Name     string `json:"name"`
 	IsAdmin  bool   `json:"is_admin"`
 }
 
@@ -42,6 +43,7 @@ func CreateJwtToken(user *model.UserHeader) (string, error) {
 		Email:    user.Email,
 		Username: user.Username,
 		IsAdmin:  user.IsAdmin,
+		Name: user.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "server",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -86,6 +88,7 @@ func ValidateToken(token string) (*model.UserHeader, error) {
 		Username: claims.Username,
 		Email:    claims.Email,
 		IsAdmin:  claims.IsAdmin,
+		Name: claims.Name,
 	}
 	return &userData, nil
 }

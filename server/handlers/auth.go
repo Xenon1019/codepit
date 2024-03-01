@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"net/http"
-	"strings"
-	"time"
-	// "fmt"
+	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	"server/model"
 	"server/model/handler"
@@ -19,7 +18,7 @@ import (
 
 const (
 	TimeToExpire = 7 * 24 * 3600
-	PrevioutTime = "Thu, 01 Jan 1970 00:00:00 GMT"
+	PreviousTime = "Thu, 01 Jan 1970 00:00:00 GMT"
 )
 
 func Login(c *gin.Context) {
@@ -53,38 +52,34 @@ func Login(c *gin.Context) {
 			c.String(http.StatusInternalServerError, "error: something went wrong")
 			return
 		}
-		response := struct {
-			JWT  string           `json:"jwt"`
-			User model.PublicUser `json:"user"`
-		}{
-			JWT:  jwtTokenString,
-			User: *userData,
-		}
-
-		// c.Header("Set-Cookie", fmt.Sprintf("auth=%s;Max-Age:%v;HttpOnly", jwtTokenString, TimeToExpire))
-		c.JSON(http.StatusOK, response)
+		c.Header("Set-Cookie", fmt.Sprintf("auth=%v; Max-Age=%v; SameSite=Strict; Path=/api/; HttpOnly", jwtTokenString, TimeToExpire))
+		c.JSON(http.StatusOK, userData)
 		return
 	}
 }
 
 func Logout(c *gin.Context) {
-	// c.Header("Set-Cookie", fmt.Sprintf("auth=\"\";Expires=%s;HttpOnly", PrevioutTime))
+	c.Header("Set-Cookie", "auth=\"\"; SameSite=Strict; Path=/api/; HttpOnly")
 	c.Status(http.StatusOK)
 }
 
 func Register(c *gin.Context) {
 	user := struct {
+		Name     string `json:"name"`
 		Username string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}{}
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.String(http.StatusBadRequest, `error: expects JSON with fields "username", "email", "password"`)
+		c.String(http.StatusBadRequest, `error: expects JSON with fields "name", "username", "email", "password"`)
 		return
 	}
 	if !utils.IsCorrectEmail(user.Email) {
 		c.String(http.StatusBadRequest, "error: invalid email")
 		return
+	}
+	if (len(user.Name) <= 2) {
+		c.String(http.StatusBadRequest, "error: name to short")
 	}
 
 	switch query.HasUsernameOrEmail(handler.GetDb(), user.Username, user.Email) {
@@ -112,13 +107,12 @@ func Register(c *gin.Context) {
 	newUser.PasswordHash = string(passwordHash)
 	newUser.Username = user.Username
 	newUser.Email = user.Email
-	if err = query.InsertUser(handler.GetDb(), newUser); err != nil {
-		c.String(http.StatusInternalServerError, "error: somthing went wrong")
-		return
-	}
+	newUser.Name = user.Name
+
 	err = query.InsertUser(handler.GetDb(), newUser)
 	if err != nil {
-		log.Printf("%s:error: %s\n", time.Now(), err.Error())
+		log.Printf("error: %s\n", err.Error())
+		c.String(http.StatusInternalServerError, "error: somthing went wrong")
 		return
 	}
 	c.Status(http.StatusOK)
@@ -134,20 +128,9 @@ func genUser() *model.User {
 	}
 }
 
-func getAuthorizaion(auth string) string {
-	if len(auth) < 7 {
-		return ""
-	}
-	stringTokens := strings.Split(auth, " ")
-	if len(stringTokens) != 2 || strings.ToLower(stringTokens[0]) != "bearer" {
-		return ""
-	}
-	return stringTokens[1]
-}
-
 func Ping(c *gin.Context) {
-	jwt := getAuthorizaion(c.GetHeader("Authorization"))
-	if len(jwt) == 0 {
+	jwt, err := c.Cookie("auth")
+	if len(jwt) == 0 || err == http.ErrNoCookie {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

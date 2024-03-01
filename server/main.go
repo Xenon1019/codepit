@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"fmt"
 	"log"
 	"os"
@@ -33,7 +34,9 @@ func corsMiddleware(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", allowedOrigin)
 	c.Header("Access-Control-Allow-Methods", "POST,GET,PUT,OPTIONS")
 	c.Header("Access-Control-Allow-Credentials", "true")
+	c.Header("Vary", "Origin")
 	if c.Request.Method == "OPTIONS" {
+		c.AbortWithStatus(http.StatusNoContent)
 		return
 	}
 	c.Next()
@@ -43,6 +46,7 @@ func main() {
 	Initialize()
 
 	router := gin.Default()
+	// router.Static("/app/", "../website/dist/")
 	router.Use(corsMiddleware)
 	routes.Routes(router)
 
